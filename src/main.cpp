@@ -1,21 +1,13 @@
-#include <SFML/Window.hpp>
 #include <spdlog/spdlog.h>
+#include <SFML/Graphics.hpp>
+#include <SFML/Window.hpp>
+
+#include "engine.hpp"
 
 int main() {
   spdlog::info("Initializing SFML.");
-  sf::Window window(sf::VideoMode(800, 600), "Maia");
-
-  // run the program as long as the window is open
-  while (window.isOpen()) {
-    // check all the window's events that were triggered since the last
-    // iteration of the loop
-    sf::Event event;
-    while (window.pollEvent(event)) {
-      // "close requested" event: we close the window
-      if (event.type == sf::Event::Closed)
-        window.close();
-    }
-  }
-
+  sf::RenderWindow window(sf::VideoMode(800, 600), "Maia");
+  sn::Engine engine{window, window};
+  engine.Run();
   return 0;
 }

@@ -30,11 +30,13 @@ endif()
 add_executable(
   maia
   "src/main.cpp"
+  "src/engine.cpp"
 )
 target_link_libraries(
   maia PUBLIC
   sfml-window
   sfml-system
+  sfml-graphics
   spdlog::spdlog
 )
 target_compile_features(maia PUBLIC cxx_std_20)
