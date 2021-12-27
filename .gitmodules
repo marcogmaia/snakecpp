@@ -1,0 +1,12 @@
+[submodule "lib/spdlog"]
+	path = lib/spdlog
+	url = https://github.com/gabime/spdlog
+	shallow = true
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = https://github.com/fmtlib/fmt
+	shallow = true
+[submodule "lib/sfml"]
+	path = lib/sfml
+	url = https://github.com/sfml/sfml
+	shallow = true
