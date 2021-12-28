@@ -2,19 +2,71 @@
 
 #include <optional>
 #include <queue>
+#include <tuple>
+#include <vector>
 
+#include <spdlog/spdlog.h>
+#include <SFML/Graphics.hpp>
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Keyboard.hpp>
 #include <SFML/Window/Window.hpp>
-#include "SFML/Graphics/RenderTarget.hpp"
 
 namespace sn {
 
 // o grid posso deixar de tamanho custom
 
-struct Grid {
+class Grid {
+ public:
+  struct Square {
+    sf::RectangleShape shape{{8, 8}};
+  };
+
+  enum class State {
+    kFree,
+    kOccupied,
+    kFood,
+  };
+
   int width = 20;
   int height = 20;
+  static constexpr int npixels_width = 8;
+  static constexpr int npixel_height = 8;
+
+  Grid(int w = 20, int h = 20) : width(w), height(h) {
+    grid_state_.resize(width * height);
+    std::fill(grid_state_.begin(), grid_state_.end(), State::kFree);
+    TextureInit_();
+  }
+
+  inline State &GetGridPosition(int index) { return grid_state_.at(index); }
+  inline State &GetGridPosition(int x, int y) { return GetGridPosition(x + y * width); }
+
+  inline std::tuple<int, int> Index2Coords(int index) {
+    int y = index / width;
+    int x = index - y * width;
+    return std::make_tuple(x, y);
+  }
+
+  // Template is a callable, signature: (State state, int index)
+  template <typename F>
+  void ForeachSquare(F fn) {
+    for (size_t index = 0; index < grid_state_.size(); ++index) {
+      fn(grid_state_[index], index);
+    }
+  }
+
+  sf::Sprite GetSprite();
+
+ private:
+  std::vector<State> grid_state_;
+  sf::RenderTexture render_texture_;
+
+  inline void TextureInit_() {
+    auto success = render_texture_.create(width * npixel_height, height * npixel_height);
+    if (!success) {
+      spdlog::critical("Failed to create SFML texture.");
+    }
+  }
 };
 
 struct Player {
@@ -42,56 +94,44 @@ class InputHandler {
   std::queue<KeyboardKey> keys_pressed_;
 };
 
+class Engine {
+ public:
+  Engine(uint32_t width, uint32_t height)
+      : window_{sf::VideoMode{width, height}, "Maia"}, render_target_{window_} {};
+
+  inline InputHandler &get_input_handler() { return inpute_handler_; }
+
+  void PollEvents();
+
+  // Render a renderable / drawable
+  void Render();
+
+  void Display();
+
+  void Run();
+
+ private:
+  InputHandler inpute_handler_;
+  sf::RenderWindow window_;
+  sf::RenderTarget &render_target_;
+};
+
 class Game {
  public:
   Game(int grid_width, int grid_height) : grid_{grid_width, grid_height} {
     player_ = Player{{grid_width / 2, grid_height / 2}};
   };
 
-  void MovePlayer(sf::Keyboard::Key key_code) {
-    using KeyCode = sf::Keyboard::Key;
-    switch (key_code) {
-      case KeyCode::W:
-      case KeyCode::Up: {
-        --player_.position.y;
-      } break;
-      case KeyCode::A:
-      case KeyCode::Left: {
-        --player_.position.x;
-      } break;
-      case KeyCode::S:
-      case KeyCode::Down: {
-        ++player_.position.y;
-      } break;
-      case KeyCode::D:
-      case KeyCode::Right: {
-        ++player_.position.x;
-      } break;
-      default:
-        break;
-    }
-  }
+  void MovePlayer(sf::Keyboard::Key key_code);
 
- private:
-  Player player_;
-  Grid grid_;
-};
-
-class Engine {
- public:
-  Engine(sf::Window &window, sf::RenderTarget &render_target)
-      : window_(window), render_target_(render_target){};
-
-  inline InputHandler &get_input_handler() { return inpute_handler_; }
-
-  void PollEvents();
+  inline Grid &get_grid() { return grid_; }
 
   void Run();
 
  private:
-  InputHandler inpute_handler_;
-  sf::Window &window_;
-  sf::RenderTarget &render_target_;
+  Player player_;
+  Grid grid_;
+  Engine engine_{800, 600};
 };
 
 }  // namespace sn

@@ -6,8 +6,10 @@
 
 int main() {
   spdlog::info("Initializing SFML.");
-  sf::RenderWindow window(sf::VideoMode(800, 600), "Maia");
-  sn::Engine engine{window, window};
-  engine.Run();
+  // window.setFramerateLimit(120);
+  // sn::Engine engine{window, window};
+  sn::Game game(800,600)
+  // engine.Run();
+  game.Run();
   return 0;
 }
