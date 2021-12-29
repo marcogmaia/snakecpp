@@ -39,5 +39,6 @@ target_link_libraries(
   sfml-system
   sfml-graphics
   spdlog::spdlog
+  fmt
 )
 target_compile_features(maia PUBLIC cxx_std_20)

@@ -1,11 +1,32 @@
 #pragma once
 
+#include <span>
+
 #include <spdlog/spdlog.h>
 #include <SFML/Graphics.hpp>
 
 #include "engine.hpp"
 
 namespace sn {
+
+namespace {
+
+class FoodManager {
+ public:
+  FoodManager(std::span<const int> free_spots) { CreateFood(free_spots); }
+
+  inline void CreateFood(std::span<const int> free_spots) {
+    rng_.random_choice(free_spots.begin(), free_spots.end(), &food_index_);
+  }
+
+  inline int get_food_index() { return food_index_; }
+
+ private:
+  int food_index_ = 0;
+  Rng rng_;
+};
+
+}  // namespace
 
 class Player {
  public:
@@ -30,21 +51,34 @@ class Player {
 
   inline MovementDirection get_movement_direction() const { return movement_direction_; }
 
-  void Grow(sf::Vector2i pos) {
-    // add new segment in this position
-    positions_.push_front(pos);
-  }
+  sf::Vector2i GetMoveTilePos(sf::Vector2i pos) { return WrapLimits_(pos); }
+
+  inline void Grow(sf::Vector2i pos) { positions_.emplace_front(pos); }
 
   inline sf::Vector2i GetHeadPosition() { return positions_.front(); }
 
   inline const std::deque<sf::Vector2i> &get_positions() const { return positions_; }
+
+  bool IsDirectionBackwards(MovementDirection direction) {
+    bool is_backwards = false;
+    // clang-format off
+    switch (direction) {
+     case MovementDirection::kUp:    is_backwards = (movement_direction_ == MovementDirection::kDown);  break;
+     case MovementDirection::kDown:  is_backwards = (movement_direction_ == MovementDirection::kUp);    break;
+     case MovementDirection::kLeft:  is_backwards = (movement_direction_ == MovementDirection::kRight); break;
+     case MovementDirection::kRight: is_backwards = (movement_direction_ == MovementDirection::kLeft);  break;
+     default: break;
+    }
+    // clang-format on
+    return is_backwards;
+  }
 
  private:
   std::deque<sf::Vector2i> positions_;
   MovementDirection movement_direction_ = MovementDirection::kRight;
   sf::Vector2i limits_;
 
-  sf::Vector2i LimitWrap_(sf::Vector2i pos);
+  sf::Vector2i WrapLimits_(sf::Vector2i pos);
 };
 
 class Grid {
@@ -89,6 +123,8 @@ class Grid {
   // Clears grid states, set all to kFree.
   inline void Clear() { std::fill(std::begin(grid_state_), std::end(grid_state_), State::kFree); }
 
+  inline size_t Size() { return grid_state_.size(); }
+
  private:
   std::vector<State> grid_state_;
   sf::RenderTexture render_texture_;
@@ -107,7 +143,9 @@ class Game {
       : grid_{grid_width, grid_height},
         player_{{grid_width / 2, grid_height / 2}, {grid_width, grid_height}},
         engine_{static_cast<uint32_t>(Grid::npixels_width * grid_width),
-                static_cast<uint32_t>(Grid::npixel_height * grid_height)} {
+                static_cast<uint32_t>(Grid::npixel_height * grid_height)},
+        food_manager_{GetGridFreeIndexes()} {
+    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
     UpdateGridFromPlayer();
   };
 
@@ -126,12 +164,32 @@ class Game {
     for (const auto &pos : player_.get_positions()) {
       grid_.GetGridTile(pos) = Grid::State::kOccupied;
     }
+    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
+  }
+
+  inline void CreateFood() {
+    auto free_indexes = GetGridFreeIndexes();
+    food_manager_.CreateFood(free_indexes);
+    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
   }
 
  private:
   Grid grid_;
   Player player_;
   Engine engine_;
+  FoodManager food_manager_;
   bool is_running_ = true;
+
+  std::vector<int> GetGridFreeIndexes() {
+    std::vector<int> free_indexes;
+    free_indexes.reserve(grid_.Size());
+    auto fn = [&free_indexes](Grid::State state, int index) {
+      if (state == Grid::State::kFree) {
+        free_indexes.emplace_back(index);
+      }
+    };
+    grid_.ForeachSquare(fn);
+    return free_indexes;
+  }
 };
 }  // namespace sn

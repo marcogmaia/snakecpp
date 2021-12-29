@@ -3,6 +3,7 @@
 #include <numeric>
 #include <optional>
 #include <queue>
+#include <random>
 #include <tuple>
 #include <vector>
 
@@ -16,6 +17,31 @@ namespace sn {
 
 using KeyCode = sf::Keyboard::Key;
 constexpr char const *game_name = "Snake";
+
+class Rng {
+ public:
+  Rng()
+      : rng_{static_cast<uint32_t>(std::chrono::steady_clock::now().time_since_epoch().count())} {}
+
+  // Get a random number in the closed interval [min, max]
+  inline int range(int min, int max) {
+    std::uniform_int_distribution<int> udist(min, max);
+    return udist(rng_);
+  }
+
+  template <typename InputIterator, typename OutputIterator>
+  bool random_choice(InputIterator first, InputIterator last, OutputIterator output) {
+    // if empty
+    if (first == last) {
+      return false;
+    }
+    std::sample(first, last, output, 1, rng_);
+    return true;
+  }
+
+ private:
+  std::mt19937 rng_;
+};
 
 class InputHandler {
  public:

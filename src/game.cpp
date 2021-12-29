@@ -3,28 +3,23 @@
 namespace sn {
 
 void Game::SetPlayerMovementDirection(KeyCode key_code) {
+  Player::MovementDirection new_direction = Player::MovementDirection::kRight;
   // clang-format off
   switch (key_code) {
     case KeyCode::W: [[fallthrough]];
-    case KeyCode::Up: {
-      player_.set_movement_direction(Player::MovementDirection::kUp);
-    } break;
+    case KeyCode::Up: new_direction = Player::MovementDirection::kUp; break;
     case KeyCode::A: [[fallthrough]];
-    case KeyCode::Left: {
-      player_.set_movement_direction(Player::MovementDirection::kLeft);
-    } break;
+    case KeyCode::Left: new_direction = Player::MovementDirection::kLeft; break;
     case KeyCode::S: [[fallthrough]];
-    case KeyCode::Down: {
-      player_.set_movement_direction(Player::MovementDirection::kDown);
-    } break;
+    case KeyCode::Down: new_direction = Player::MovementDirection::kDown; break;
     case KeyCode::D: [[fallthrough]];
-    case KeyCode::Right: {
-      player_.set_movement_direction(Player::MovementDirection::kRight);
-    } break;
-    default:
-      break;
+    case KeyCode::Right: new_direction = Player::MovementDirection::kRight; break;
+    default: break;
   }
   // clang-format on
+  if (!player_.IsDirectionBackwards(new_direction)) {
+    player_.set_movement_direction(new_direction);
+  }
 }
 
 void Game::Run() {
@@ -99,17 +94,26 @@ void Game::ProcessTurn(float elapsed_time) {
     default: break;
       // clang-format on
   }
-  player_.Move({x, y});
-  // TODO:
+  // wraps if out of grid
+  sf::Vector2i next_move_pos = player_.GetMoveTilePos({x, y});
   // 1 - Check for food
-  // 2 - Grow snake
+  bool tile_has_food = grid_.GetGridTile(next_move_pos) == Grid::State::kFood;
+  if (tile_has_food) {
+    // 2 - Grow snake
+    player_.Grow(next_move_pos);
+    // remove food from map
+    food_manager_.CreateFood(GetGridFreeIndexes());
+  } else {
+    player_.Move(next_move_pos);
+  }
+
   // 3 - Check losing conditions
   grid_.Clear();
   UpdateGridFromPlayer();
 }
 
 void Player::Move(sf::Vector2i new_pos) {
-  new_pos = LimitWrap_(new_pos);
+  new_pos = WrapLimits_(new_pos);
   auto &head = positions_.front();
   auto &tail = positions_.back();
   bool body_exists = &head != &tail;
@@ -121,7 +125,7 @@ void Player::Move(sf::Vector2i new_pos) {
   }
 }
 
-sf::Vector2i Player::LimitWrap_(sf::Vector2i pos) {
+sf::Vector2i Player::WrapLimits_(sf::Vector2i pos) {
   if (pos.x >= limits_.x) {
     pos.x = 0;
   } else if (pos.x < 0) {
