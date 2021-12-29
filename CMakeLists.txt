@@ -31,6 +31,7 @@ add_executable(
   maia
   "src/main.cpp"
   "src/engine.cpp"
+  "src/game.cpp"
 )
 target_link_libraries(
   maia PUBLIC
