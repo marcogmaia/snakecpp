@@ -1,8 +1,9 @@
-
-#include "engine.hpp"
+#include <chrono>
 
 #include <SFML/Window/Event.hpp>
 #include <SFML/Window/Window.hpp>
+
+#include "engine.hpp"
 
 namespace sn {
 
@@ -66,38 +67,23 @@ void Engine::PollEvents() {
   }
 }
 
-// TODO move this from here
-void Engine::Run() {
-  // Grid& grid = game_.get_grid();
-
-  while (window_.isOpen()) {
-    PollEvents();
-    render_target_.clear(sf::Color::Black);
-    // auto shape = grid.GetSprite();
-    // shape.setPosition({64, 64});
-    // render_target_.draw(shape);
-    window_.display();
-  }
-}
-
-void Game::MovePlayer(sf::Keyboard::Key key_code) {
-  using KeyCode = sf::Keyboard::Key;
+void Game::SetPlayerMovementDirection(KeyCode key_code) {
   switch (key_code) {
     case KeyCode::W:
     case KeyCode::Up: {
-      --player_.position.y;
+      player_.SetMovementDirection(Player::MovementDirection::kUp);
     } break;
     case KeyCode::A:
     case KeyCode::Left: {
-      --player_.position.x;
+      player_.SetMovementDirection(Player::MovementDirection::kLeft);
     } break;
     case KeyCode::S:
     case KeyCode::Down: {
-      ++player_.position.y;
+      player_.SetMovementDirection(Player::MovementDirection::kDown);
     } break;
     case KeyCode::D:
     case KeyCode::Right: {
-      ++player_.position.x;
+      player_.SetMovementDirection(Player::MovementDirection::kRight);
     } break;
     default:
       break;
@@ -108,12 +94,25 @@ void Game::Run() {
   grid_.GetGridPosition(3, 3) = Grid::State::kFood;
   grid_.GetGridPosition(4, 3) = Grid::State::kOccupied;
   grid_.GetGridPosition(8, 9) = Grid::State::kOccupied;
-  
-  // TODO create while loop while game is running
-  engine_.PollEvents();
-  engine_.Render();
-  engine_.Display();
 
+  Timer &timer = engine_.get_timer();
+  timer.Init();
+  InputHandler &input_handler = engine_.get_input_handler();
+
+  while (is_running_) {
+    engine_.PollEvents();
+    // Game logic
+    {
+      auto key_pressed = input_handler.GetKeyPressed();
+      if (key_pressed) {
+        SetPlayerMovementDirection(*key_pressed);
+      }
+      ProcessTurn(timer.GetDelta());
+    }
+    engine_.Render(grid_.GetSprite());
+    engine_.Display();
+    CheckRunningStatus();
+  }
 }
 
 sf::Sprite Grid::GetSprite() {
@@ -145,6 +144,11 @@ sf::Sprite Grid::GetSprite() {
   ForeachSquare(fn);
   sf::Sprite sp{render_texture_.getTexture()};
   return sp;
+}
+
+void Game::ProcessTurn(float elapsed_time) {
+  // if completed turn time, get the movement direction and move the snake
+  // TODO need to define the *turn_time*
 }
 
 }  // namespace sn
