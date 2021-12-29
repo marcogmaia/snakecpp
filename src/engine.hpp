@@ -49,17 +49,20 @@ class InputHandler {
 
   inline std::optional<KeyCode> GetKeyPressed() {
     std::optional<KeyCode> key;
-    if (!keys_pressed_.empty()) {
-      key.emplace(keys_pressed_.front());
-      keys_pressed_.pop();
+    if (KeyHasBeenPressed_()) {
+      key.emplace(keys_pressed_);
+      ResetKeyState_();
     }
     return key;
   }
 
-  inline void PushKey(KeyCode key) { keys_pressed_.push(key); }
+  inline void PushKey(KeyCode key) { keys_pressed_ = key; }
 
  private:
-  std::queue<KeyCode> keys_pressed_;
+  KeyCode keys_pressed_ = KeyCode::Unknown;
+
+  inline bool KeyHasBeenPressed_() { return keys_pressed_ != KeyCode::Unknown; }
+  inline void ResetKeyState_() { keys_pressed_ = KeyCode::Unknown; }
 };
 
 class Timer {
@@ -87,7 +90,7 @@ class Timer {
 class Engine {
  public:
   Engine(uint32_t width, uint32_t height)
-      : window_{sf::VideoMode{width, height}, game_name}, render_target_{window_} {
+      : window_{sf::VideoMode{width, height}, game_name, sf::Style::Close | sf::Style::Titlebar}, render_target_{window_} {
     window_.setFramerateLimit(120);
   };
 

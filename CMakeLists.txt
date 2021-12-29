@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15.0)
-project(maia VERSION 0.1.0)
+project(snake VERSION 0.1.0)
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -28,17 +28,17 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 endif()
 
 add_executable(
-  maia
+  snake
   "src/main.cpp"
   "src/engine.cpp"
   "src/game.cpp"
 )
 target_link_libraries(
-  maia PUBLIC
+  snake PUBLIC
   sfml-window
   sfml-system
   sfml-graphics
   spdlog::spdlog
   fmt
 )
-target_compile_features(maia PUBLIC cxx_std_20)
+target_compile_features(snake PUBLIC cxx_std_20)

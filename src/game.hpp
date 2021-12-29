@@ -53,7 +53,12 @@ class Player {
 
   sf::Vector2i GetMoveTilePos(sf::Vector2i pos) { return WrapLimits_(pos); }
 
-  inline void Grow(sf::Vector2i pos) { positions_.emplace_front(pos); }
+  inline void Grow(sf::Vector2i pos) {
+    positions_.emplace_front(pos);
+    Move(pos);
+  }
+
+  inline size_t Size() const { return positions_.size(); }
 
   inline sf::Vector2i GetHeadPosition() { return positions_.front(); }
 
@@ -144,9 +149,8 @@ class Game {
         player_{{grid_width / 2, grid_height / 2}, {grid_width, grid_height}},
         engine_{static_cast<uint32_t>(Grid::npixels_width * grid_width),
                 static_cast<uint32_t>(Grid::npixel_height * grid_height)},
-        food_manager_{GetGridFreeIndexes()} {
-    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
-    UpdateGridFromPlayer();
+        food_manager_{GetGridFreeIndexes_()} {
+    NewGame();
   };
 
   ~Game() = default;
@@ -168,9 +172,17 @@ class Game {
   }
 
   inline void CreateFood() {
-    auto free_indexes = GetGridFreeIndexes();
+    auto free_indexes = GetGridFreeIndexes_();
     food_manager_.CreateFood(free_indexes);
     grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
+  }
+
+  void NewGame() {
+    game_over_ = false;
+    player_ = Player({grid_.width / 2, grid_.height / 2}, {grid_.width, grid_.height});
+    CreateFood();
+    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
+    UpdateGridFromPlayer();
   }
 
  private:
@@ -178,18 +190,12 @@ class Game {
   Player player_;
   Engine engine_;
   FoodManager food_manager_;
+  bool game_over_ = false;
   bool is_running_ = true;
 
-  std::vector<int> GetGridFreeIndexes() {
-    std::vector<int> free_indexes;
-    free_indexes.reserve(grid_.Size());
-    auto fn = [&free_indexes](Grid::State state, int index) {
-      if (state == Grid::State::kFree) {
-        free_indexes.emplace_back(index);
-      }
-    };
-    grid_.ForeachSquare(fn);
-    return free_indexes;
-  }
+  std::vector<int> GetGridFreeIndexes_();
+  void UpdatePlayerMovementDirection_();
+  sf::Vector2i GetPlayerNextPosition_();
 };
+
 }  // namespace sn

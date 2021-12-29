@@ -5,6 +5,12 @@
 #include "engine.hpp"
 #include "game.hpp"
 
+#ifndef DEBUG
+#ifdef _WIN32
+#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+#endif
+#endif
+
 int main() {
   spdlog::info("Initializing SFML.");
   sn::Game game(32, 32);

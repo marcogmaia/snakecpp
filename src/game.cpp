@@ -3,6 +3,7 @@
 namespace sn {
 
 void Game::SetPlayerMovementDirection(KeyCode key_code) {
+  // BUG: quando se pressiona as teclas rápido o suficiente, pode andar na direção contrária
   Player::MovementDirection new_direction = Player::MovementDirection::kRight;
   // clang-format off
   switch (key_code) {
@@ -25,18 +26,11 @@ void Game::SetPlayerMovementDirection(KeyCode key_code) {
 void Game::Run() {
   Timer &timer = engine_.get_timer();
   timer.Init();
-  InputHandler &input_handler = engine_.get_input_handler();
 
   while (is_running_) {
     engine_.PollEvents();
     // Game logic
-    {
-      auto key_pressed = input_handler.GetKeyPressed();
-      if (key_pressed) {
-        SetPlayerMovementDirection(*key_pressed);
-      }
-      ProcessTurn(timer.GetDelta());
-    }
+    ProcessTurn(timer.GetDelta());
     engine_.Render(grid_.GetSprite());
     engine_.Display();
     CheckRunningStatus();
@@ -75,34 +69,35 @@ sf::Sprite Grid::GetSprite() {
 
 void Game::ProcessTurn(float elapsed_time) {
   // if completed turn time, get the movement direction and move the snake
-  // TODO need to define the *turn_time*
+  // TODO need to define the *turn_time* as an exponential funtion, limited by fps
   constexpr float khack_turn_time = .1;
+  constexpr float size_speed_multiplier = 0.002;
+  float turn_time = khack_turn_time - (player_.Size() * size_speed_multiplier);
   static float time_bucket = 0.f;
   time_bucket += elapsed_time;
-  if (time_bucket < khack_turn_time) {
+  if (time_bucket < turn_time) {
     return;
   }
-  time_bucket -= khack_turn_time;
-  // do logic here
-  auto [x, y] = player_.GetHeadPosition();
-  switch (player_.get_movement_direction()) {
-    // clang-format off
-    case Player::MovementDirection::kUp:    ++y; break;
-    case Player::MovementDirection::kDown:  --y; break;
-    case Player::MovementDirection::kLeft:  --x; break;
-    case Player::MovementDirection::kRight: ++x; break;
-    default: break;
-      // clang-format on
+  time_bucket -= turn_time;
+  // consumes direction key
+  UpdatePlayerMovementDirection_();
+  auto next_move_pos = GetPlayerNextPosition_();
+  // check losing condition
+  // if next_pos is occupied, player loses, restart game
+  game_over_ = grid_.GetGridTile(next_move_pos) == Grid::State::kOccupied;
+  if (game_over_) {
+    // restart game
+    NewGame();
+    return;
   }
-  // wraps if out of grid
-  sf::Vector2i next_move_pos = player_.GetMoveTilePos({x, y});
+
   // 1 - Check for food
   bool tile_has_food = grid_.GetGridTile(next_move_pos) == Grid::State::kFood;
   if (tile_has_food) {
     // 2 - Grow snake
     player_.Grow(next_move_pos);
     // remove food from map
-    food_manager_.CreateFood(GetGridFreeIndexes());
+    food_manager_.CreateFood(GetGridFreeIndexes_());
   } else {
     player_.Move(next_move_pos);
   }
@@ -139,4 +134,39 @@ sf::Vector2i Player::WrapLimits_(sf::Vector2i pos) {
   return pos;
 }
 
+std::vector<int> Game::GetGridFreeIndexes_() {
+  std::vector<int> free_indexes;
+  free_indexes.reserve(grid_.Size());
+  auto fn = [&free_indexes](Grid::State state, int index) {
+    if (state == Grid::State::kFree) {
+      free_indexes.emplace_back(index);
+    }
+  };
+  grid_.ForeachSquare(fn);
+  return free_indexes;
+}
+
+void Game::UpdatePlayerMovementDirection_() {
+  InputHandler &input_handler = engine_.get_input_handler();
+  auto key_pressed = input_handler.GetKeyPressed();
+  if (key_pressed) {
+    SetPlayerMovementDirection(*key_pressed);
+  }
+}
+
+sf::Vector2i Game::GetPlayerNextPosition_() {
+  auto [x, y] = player_.GetHeadPosition();
+  switch (player_.get_movement_direction()) {
+    // clang-format off
+    case Player::MovementDirection::kUp:    ++y; break;
+    case Player::MovementDirection::kDown:  --y; break;
+    case Player::MovementDirection::kLeft:  --x; break;
+    case Player::MovementDirection::kRight: ++x; break;
+    default: break;
+      // clang-format on
+  }
+  // wraps if out of grid
+  sf::Vector2i next_move_pos = player_.GetMoveTilePos({x, y});
+  return next_move_pos;
+}
 }  // namespace sn
