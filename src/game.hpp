@@ -55,7 +55,6 @@ class Player {
 
   inline void Grow(sf::Vector2i pos) {
     positions_.emplace_front(pos);
-    Move(pos);
   }
 
   inline size_t Size() const { return positions_.size(); }
@@ -63,6 +62,15 @@ class Player {
   inline sf::Vector2i GetHeadPosition() { return positions_.front(); }
 
   inline const std::deque<sf::Vector2i> &get_positions() const { return positions_; }
+
+  bool HeadOverlapsWithBody() {
+    bool overlaps = false;
+    auto head_pos = positions_.front();
+    for (size_t i = 1; i < positions_.size() && !overlaps; ++i) {
+      overlaps = (head_pos == positions_[i]);
+    }
+    return overlaps;
+  }
 
   bool IsDirectionBackwards(MovementDirection direction) {
     bool is_backwards = false;

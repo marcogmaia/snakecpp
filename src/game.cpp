@@ -94,8 +94,7 @@ void Game::ProcessTurn(float elapsed_time) {
   auto next_move_pos = GetPlayerNextPosition_();
   // check losing condition
   // if next_pos is occupied, player loses, restart game
-  // FIXME: game over condition is to check if any part of the body occupies the same square as Head
-  game_over_ = grid_.GetGridTile(next_move_pos) == Grid::State::kOccupied;
+  game_over_ = player_.HeadOverlapsWithBody();
   if (game_over_) {
     // restart game
     NewGame();
