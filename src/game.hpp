@@ -9,24 +9,20 @@
 
 namespace sn {
 
-namespace {
-
 class FoodManager {
  public:
-  FoodManager(std::span<const int> free_spots) { CreateFood(free_spots); }
+  explicit FoodManager(std::span<const int> free_spots) { CreateFood(free_spots); }
 
   inline void CreateFood(std::span<const int> free_spots) {
     rng_.random_choice(free_spots.begin(), free_spots.end(), &food_index_);
   }
 
-  inline int get_food_index() { return food_index_; }
+  [[nodiscard]] inline int get_food_index() const { return food_index_; }
 
  private:
   int food_index_ = 0;
   Rng rng_;
 };
-
-}  // namespace
 
 class Player {
  public:
@@ -49,28 +45,21 @@ class Player {
     movement_direction_ = direction;
   }
 
-  inline MovementDirection get_movement_direction() const { return movement_direction_; }
+  [[nodiscard]] inline MovementDirection get_movement_direction() const {
+    return movement_direction_;
+  }
 
   sf::Vector2i GetMoveTilePos(sf::Vector2i pos) { return WrapLimits_(pos); }
 
-  inline void Grow(sf::Vector2i pos) {
-    positions_.emplace_front(pos);
-  }
+  inline void Grow(sf::Vector2i pos) { positions_.emplace_front(pos); }
 
-  inline size_t Size() const { return positions_.size(); }
+  [[nodiscard]] inline size_t Size() const { return positions_.size(); }
 
   inline sf::Vector2i GetHeadPosition() { return positions_.front(); }
 
-  inline const std::deque<sf::Vector2i> &get_positions() const { return positions_; }
+  [[nodiscard]] inline const std::deque<sf::Vector2i> &get_positions() const { return positions_; }
 
-  bool HeadOverlapsWithBody() {
-    bool overlaps = false;
-    auto head_pos = positions_.front();
-    for (size_t i = 1; i < positions_.size() && !overlaps; ++i) {
-      overlaps = (head_pos == positions_[i]);
-    }
-    return overlaps;
-  }
+  bool HeadOverlapsWithBody();
 
   bool IsDirectionBackwards(MovementDirection direction) {
     bool is_backwards = false;
@@ -91,7 +80,7 @@ class Player {
   MovementDirection movement_direction_ = MovementDirection::kRight;
   sf::Vector2i limits_;
 
-  sf::Vector2i WrapLimits_(sf::Vector2i pos);
+  [[nodiscard]] sf::Vector2i WrapLimits_(sf::Vector2i pos) const;
 };
 
 class Grid {
@@ -102,24 +91,22 @@ class Grid {
     kFood,
   };
 
-  int width = 20;
-  int height = 20;
   static constexpr int npixels_width = 8;
   static constexpr int npixel_height = 8;
 
-  Grid(int w = 20, int h = 20) : width(w), height(h) {
-    grid_state_.resize(width * height);
+  explicit Grid(int w = 20, int h = 20) : width_(w), height_(h) {
+    grid_state_.resize(width_ * height_);
     std::fill(grid_state_.begin(), grid_state_.end(), State::kFree);
     TextureInit_();
   }
 
   inline State &GetGridTile(int index) { return grid_state_.at(index); }
-  inline State &GetGridTile(int x, int y) { return GetGridTile(x + y * width); }
+  inline State &GetGridTile(int x, int y) { return GetGridTile(x + y * width_); }
   inline State &GetGridTile(sf::Vector2i pos) { return GetGridTile(pos.x, pos.y); }
 
-  inline std::tuple<int, int> Index2Coords(int index) {
-    int y = index / width;
-    int x = index - y * width;
+  inline std::tuple<int, int> Index2Coords(int index) const {
+    int y = index / width_;
+    int x = index - y * width_;
     return std::make_tuple(x, y);
   }
 
@@ -138,12 +125,17 @@ class Grid {
 
   inline size_t Size() { return grid_state_.size(); }
 
+  inline int get_width() const { return width_; }
+  inline int get_height() const { return height_; }
+
  private:
   std::vector<State> grid_state_;
   sf::RenderTexture render_texture_;
+  int width_ = 20;
+  int height_ = 20;
 
   inline void TextureInit_() {
-    auto success = render_texture_.create(width * npixel_height, height * npixel_height);
+    auto success = render_texture_.create(width_ * npixel_height, height_ * npixel_height);
     if (!success) {
       spdlog::critical("Failed to create SFML texture.");
     }
@@ -161,8 +153,6 @@ class Game {
     NewGame();
   };
 
-  ~Game() = default;
-
   void SetPlayerMovementDirection(sf::Keyboard::Key key_code);
 
   void ProcessTurn(float elapsed_time);
@@ -178,6 +168,11 @@ class Game {
   }
 
   void NewGame();
+
+  template <typename T>
+  inline void ShowScore(T score) {
+    engine_.SetWindowTitle(fmt::format("Snake - score: {}", player_.Size()));
+  }
 
  private:
   Grid grid_;

@@ -70,10 +70,11 @@ sf::Sprite Grid::GetSprite() {
 
 namespace {
 
-constexpr float GetTurnTime(int size) {
+template <typename T>
+constexpr float GetTurnTime(T size) {
   constexpr float initial_turn_time = 1.f / 10.f;
   constexpr float base_time = 1.f / 60.f;
-  float interp = std::lerp(0.f, 2.f, (size - 1) / 100.f);
+  float interp = std::lerp(0.f, 2.f, static_cast<float>(size - 1) / 100.f);
   float turn_time = ((initial_turn_time - base_time) * std::expf(-interp)) + base_time;
   return turn_time;
 }
@@ -89,6 +90,7 @@ void Game::ProcessTurn(float elapsed_time) {
     return;
   }
   time_bucket -= turn_time;
+  ShowScore(player_.Size());
   // consumes direction key
   UpdatePlayerMovementDirection_();
   auto next_move_pos = GetPlayerNextPosition_();
@@ -130,7 +132,7 @@ void Player::Move(sf::Vector2i new_pos) {
   }
 }
 
-sf::Vector2i Player::WrapLimits_(sf::Vector2i pos) {
+sf::Vector2i Player::WrapLimits_(sf::Vector2i pos) const {
   auto wrap_limit = [](int actual, int limit) -> int {
     int ret = actual;
     if (actual >= limit) {
@@ -183,7 +185,8 @@ sf::Vector2i Game::GetPlayerNextPosition_() {
 
 void Game::NewGame() {
   game_over_ = false;
-  player_ = Player({grid_.width / 2, grid_.height / 2}, {grid_.width, grid_.height});
+  player_ = Player({grid_.get_width() / 2, grid_.get_height() / 2},
+                   {grid_.get_width(), grid_.get_height()});
   CreateFood();
   grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
   UpdateGridFromPlayer();
@@ -195,6 +198,15 @@ void Game::UpdateGridFromPlayer() {
     grid_.GetGridTile(pos) = Grid::State::kOccupied;
   }
   grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
+}
+
+bool Player::HeadOverlapsWithBody() {
+  bool overlaps = false;
+  auto head_pos = positions_.front();
+  for (size_t i = 1; i < positions_.size() && !overlaps; ++i) {
+    overlaps = (head_pos == positions_[i]);
+  }
+  return overlaps;
 }
 
 }  // namespace sn

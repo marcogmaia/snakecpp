@@ -1,0 +1,24 @@
+CompileFlags: # Tweak the parse settings
+  Add: [-xc++, -Wall, -std=c++20] # treat all files as C++, enable more warnings
+  Remove: -W* # strip all other warning-related flags
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      [
+        cppcoreguidelines-*,
+        modernize-*,
+        bugprone-*,
+        performance-*,
+        readability-*,
+        google-*,
+      ]
+    Remove:
+      [
+        bugprone-easily-swappable-parameters,
+        bugprone-implicit-widening-of-multiplication-result,
+        modernize-use-trailing-return-type,
+        readability-uppercase-literal-suffix,
+        readability-magic-numbers,
+        cppcoreguidelines-avoid-magic-numbers,
+      ]

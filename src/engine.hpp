@@ -69,28 +69,29 @@ class Timer {
  public:
   using TimePoint = std::chrono::time_point<std::chrono::steady_clock>;
   using TimeFloat = std::chrono::duration<float>;
+  using SClock = std::chrono::steady_clock;
 
-  Timer() { last_time_ = sclock_.now(); }
+  Timer() { last_time_ = SClock::now(); }
 
-  inline void Init() { last_time_ = sclock_.now(); }
+  inline void Init() { last_time_ = SClock::now(); }
 
   inline float GetDelta() {
-    using namespace std::chrono;
-    auto now = sclock_.now();
+    auto now = SClock::now();
     auto delta = now - last_time_;
     last_time_ = now;
-    return duration_cast<TimeFloat>(delta).count();
+    return std::chrono::duration_cast<TimeFloat>(delta).count();
   }
 
  private:
-  std::chrono::steady_clock sclock_;
+  // std::chrono::steady_clock sclock_;
   TimePoint last_time_;
 };
 
 class Engine {
  public:
   Engine(uint32_t width, uint32_t height)
-      : window_{sf::VideoMode{width, height}, game_name, sf::Style::Close | sf::Style::Titlebar}, render_target_{window_} {
+      : window_{sf::VideoMode{width, height}, game_name, sf::Style::Close | sf::Style::Titlebar},
+        render_target_{window_} {
     window_.setFramerateLimit(120);
   };
 
@@ -109,6 +110,8 @@ class Engine {
   inline Timer &get_timer() { return timer_; }
 
   bool ShouldTerminate() { return !window_.isOpen(); }
+
+  inline void SetWindowTitle(const std::string &title) { window_.setTitle(title); }
 
  private:
   InputHandler inpute_handler_;

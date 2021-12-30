@@ -1,6 +1,4 @@
 #include <spdlog/spdlog.h>
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
 
 #include "engine.hpp"
 #include "game.hpp"
