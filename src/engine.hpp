@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <numeric>
 #include <optional>
 #include <queue>
@@ -50,19 +51,26 @@ class InputHandler {
   inline std::optional<KeyCode> GetKeyPressed() {
     std::optional<KeyCode> key;
     if (KeyHasBeenPressed_()) {
-      key.emplace(keys_pressed_);
-      ResetKeyState_();
+      key.emplace(keys_pressed_.front());
+      keys_pressed_.pop();
     }
     return key;
   }
 
-  inline void PushKey(KeyCode key) { keys_pressed_ = key; }
+  inline void PushKey(KeyCode key) {
+    if (keys_pressed_.size() < 2) {
+      keys_pressed_.emplace(key);
+    } else {
+      keys_pressed_.pop();
+      keys_pressed_.emplace(key);
+    }
+  }
 
  private:
-  KeyCode keys_pressed_ = KeyCode::Unknown;
+  std::queue<KeyCode> keys_pressed_;
 
-  inline bool KeyHasBeenPressed_() { return keys_pressed_ != KeyCode::Unknown; }
-  inline void ResetKeyState_() { keys_pressed_ = KeyCode::Unknown; }
+  inline bool KeyHasBeenPressed_() { return !keys_pressed_.empty(); }
+  inline void ResetKeyState_() { keys_pressed_ = std::queue<KeyCode>(); }
 };
 
 class Timer {
