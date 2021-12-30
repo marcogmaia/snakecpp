@@ -5,7 +5,6 @@
 namespace sn {
 
 void Game::SetPlayerMovementDirection(KeyCode key_code) {
-  // BUG: quando se pressiona as teclas rápido o suficiente, pode andar na direção contrária
   Player::MovementDirection new_direction = Player::MovementDirection::kRight;
   // clang-format off
   switch (key_code) {
@@ -95,6 +94,7 @@ void Game::ProcessTurn(float elapsed_time) {
   auto next_move_pos = GetPlayerNextPosition_();
   // check losing condition
   // if next_pos is occupied, player loses, restart game
+  // FIXME: game over condition is to check if any part of the body occupies the same square as Head
   game_over_ = grid_.GetGridTile(next_move_pos) == Grid::State::kOccupied;
   if (game_over_) {
     // restart game
@@ -132,16 +132,17 @@ void Player::Move(sf::Vector2i new_pos) {
 }
 
 sf::Vector2i Player::WrapLimits_(sf::Vector2i pos) {
-  if (pos.x >= limits_.x) {
-    pos.x = 0;
-  } else if (pos.x < 0) {
-    pos.x = limits_.x - 1;
-  }
-  if (pos.y >= limits_.y) {
-    pos.y = 0;
-  } else if (pos.y < 0) {
-    pos.y = limits_.y - 1;
-  }
+  auto wrap_limit = [](int actual, int limit) -> int {
+    int ret = actual;
+    if (actual >= limit) {
+      ret = 0;
+    } else if (actual < 0) {
+      ret = limit - 1;
+    }
+    return ret;
+  };
+  pos.x = wrap_limit(pos.x, limits_.x);
+  pos.y = wrap_limit(pos.y, limits_.y);
   return pos;
 }
 
@@ -196,4 +197,5 @@ void Game::UpdateGridFromPlayer() {
   }
   grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
 }
+
 }  // namespace sn
