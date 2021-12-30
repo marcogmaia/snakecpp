@@ -6,7 +6,8 @@
 #include "game.hpp"
 
 #ifndef DEBUG
-#ifdef _WIN32
+// if compiler is MSVC, disable console
+#if defined(_WIN32) && defined(_MSC_VER)
 #pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
 #endif
 #endif

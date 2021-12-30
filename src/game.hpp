@@ -161,15 +161,7 @@ class Game {
 
   void Run();
 
-  inline void CheckRunningStatus() { is_running_ = !engine_.ShouldTerminate(); }
-
-  inline void UpdateGridFromPlayer() {
-    grid_.Clear();
-    for (const auto &pos : player_.get_positions()) {
-      grid_.GetGridTile(pos) = Grid::State::kOccupied;
-    }
-    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
-  }
+  void UpdateGridFromPlayer();
 
   inline void CreateFood() {
     auto free_indexes = GetGridFreeIndexes_();
@@ -177,13 +169,7 @@ class Game {
     grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
   }
 
-  void NewGame() {
-    game_over_ = false;
-    player_ = Player({grid_.width / 2, grid_.height / 2}, {grid_.width, grid_.height});
-    CreateFood();
-    grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
-    UpdateGridFromPlayer();
-  }
+  void NewGame();
 
  private:
   Grid grid_;
@@ -196,6 +182,7 @@ class Game {
   std::vector<int> GetGridFreeIndexes_();
   void UpdatePlayerMovementDirection_();
   sf::Vector2i GetPlayerNextPosition_();
+  inline void CheckRunningStatus_() { is_running_ = !engine_.ShouldTerminate(); }
 };
 
 }  // namespace sn

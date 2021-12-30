@@ -1,5 +1,7 @@
 #include "game.hpp"
 
+#include <cmath>
+
 namespace sn {
 
 void Game::SetPlayerMovementDirection(KeyCode key_code) {
@@ -33,7 +35,7 @@ void Game::Run() {
     ProcessTurn(timer.GetDelta());
     engine_.Render(grid_.GetSprite());
     engine_.Display();
-    CheckRunningStatus();
+    CheckRunningStatus_();
   }
 }
 
@@ -67,12 +69,21 @@ sf::Sprite Grid::GetSprite() {
   return sp;
 }
 
+namespace {
+
+constexpr float GetTurnTime(int size) {
+  constexpr float initial_turn_time = 1.f / 10.f;
+  constexpr float base_time = 1.f / 60.f;
+  float interp = std::lerp(0.f, 2.f, (size - 1) / 100.f);
+  float turn_time = ((initial_turn_time - base_time) * std::expf(-interp)) + base_time;
+  return turn_time;
+}
+
+}  // namespace
+
 void Game::ProcessTurn(float elapsed_time) {
   // if completed turn time, get the movement direction and move the snake
-  // TODO need to define the *turn_time* as an exponential funtion, limited by fps
-  constexpr float khack_turn_time = .1;
-  constexpr float size_speed_multiplier = 0.002;
-  float turn_time = khack_turn_time - (player_.Size() * size_speed_multiplier);
+  float turn_time = GetTurnTime(player_.Size());
   static float time_bucket = 0.f;
   time_bucket += elapsed_time;
   if (time_bucket < turn_time) {
@@ -168,5 +179,21 @@ sf::Vector2i Game::GetPlayerNextPosition_() {
   // wraps if out of grid
   sf::Vector2i next_move_pos = player_.GetMoveTilePos({x, y});
   return next_move_pos;
+}
+
+void Game::NewGame() {
+  game_over_ = false;
+  player_ = Player({grid_.width / 2, grid_.height / 2}, {grid_.width, grid_.height});
+  CreateFood();
+  grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
+  UpdateGridFromPlayer();
+}
+
+void Game::UpdateGridFromPlayer() {
+  grid_.Clear();
+  for (const auto &pos : player_.get_positions()) {
+    grid_.GetGridTile(pos) = Grid::State::kOccupied;
+  }
+  grid_.GetGridTile(food_manager_.get_food_index()) = Grid::State::kFood;
 }
 }  // namespace sn
